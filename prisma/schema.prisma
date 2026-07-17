@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Influencer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  status    InfluencerStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coupon      Coupon?
+  utmLinks    UtmLink[]
+  loginTokens LoginToken[]
+}
+
+enum InfluencerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model LoginToken {
+  id           String     @id @default(cuid())
+  token        String     @unique
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  influencerId String
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@index([influencerId])
+}
+
+model Coupon {
+  id             String     @id @default(cuid())
+  yampiPromoId   String     @unique
+  code           String     @unique
+  discountType   String
+  discountValue  Decimal
+  active         Boolean    @default(true)
+  influencer     Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  influencerId   String     @unique
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  yampiOrderId   String   @unique
+  coupon         Coupon?  @relation(fields: [couponId], references: [id])
+  couponId       String?
+  status         String
+  valueTotal     Decimal
+  valueDiscount  Decimal  @default(0)
+  paidAt         DateTime?
+  rawItems       Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([couponId])
+  @@index([paidAt])
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  shopifyGid     String   @unique
+  handle         String   @unique
+  title          String
+  imageUrl       String?
+  onlineStoreUrl String
+  syncedAt       DateTime @default(now())
+
+  utmLinks UtmLink[]
+}
+
+model UtmLink {
+  id           String     @id @default(cuid())
+  slug         String     @unique
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  influencerId String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId    String
+  utmSource    String
+  utmMedium    String
+  utmCampaign  String
+  createdAt    DateTime   @default(now())
+
+  clickEvents ClickEvent[]
+
+  @@index([influencerId])
+}
+
+model ClickEvent {
+  id        String   @id @default(cuid())
+  utmLink   UtmLink  @relation(fields: [utmLinkId], references: [id], onDelete: Cascade)
+  utmLinkId String
+  clickedAt DateTime @default(now())
+  referrer  String?
+  userAgent String?
+
+  @@index([utmLinkId])
+  @@index([clickedAt])
+}
