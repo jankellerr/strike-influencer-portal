@@ -80,7 +80,11 @@ Auth is a single shared password (no per-staff accounts) signed into an HttpOnly
 
 `/login` → influencer enters their email → gets a one-time magic link (15 min expiry, single use) via Resend → `/dashboard`.
 
-The dashboard shows, filterable by date range (`?from=YYYY-MM-DD&to=YYYY-MM-DD`, defaults to all-time): total revenue, order count, average order value, discount given, and a per-order table — all scoped strictly server-side to the logged-in influencer's own coupon (see `verifyInfluencerSession` in `src/lib/dal.ts`).
+The dashboard shows, filterable by date range (`?from=YYYY-MM-DD&to=YYYY-MM-DD`, defaults to all-time): total revenue, order count, average order value, discount given, total link clicks, and a per-order table — all scoped strictly server-side to the logged-in influencer's own coupon (see `verifyInfluencerSession` in `src/lib/dal.ts`).
+
+## UTM link generator
+
+`/dashboard/links` — an influencer picks a product from Strike's synced catalog and gets a short link (`{APP_BASE_URL}/l/{slug}`, e.g. `strike-influencer-portal.vercel.app/l/MwpyWqjw`). Visiting that short link logs a click (`ClickEvent`) then 302-redirects to the real Shopify product page with `utm_source` (the influencer's coupon code), `utm_medium=influencer`, and `utm_campaign` (the product handle) attached — so both this app's own click count *and* Strike's Shopify/GA analytics can attribute traffic to the right influencer and product.
 
 ## Project structure
 
@@ -90,9 +94,11 @@ src/
     admin/                   # Admin panel pages (login, dashboard, new influencer)
     login/                    # Influencer magic-link login page
     dashboard/                 # Influencer sales dashboard
+    dashboard/links/            # UTM link generator + click counts
     api/admin/                # Admin login/logout/influencer mutation routes
     api/login/                 # Magic-link request + verify routes
     api/logout/                # Influencer logout
+    api/dashboard/links/       # Create a UTM link
     api/webhooks/yampi/       # Yampi order webhook receiver
     api/cron/                  # Scheduled coupon/product/order sync (Vercel Cron)
     l/[slug]/                   # Short-link redirect + click logging
@@ -111,6 +117,6 @@ prisma/schema.prisma            # Influencer, LoginToken, Coupon, Order, Product
 
 ## What's built vs. what's next
 
-Built so far (Phases 0–3 of the project plan): project scaffold, data model, Yampi webhook ingestion (verified live), Yampi coupon/product/order sync, order backfill, short-link redirect + click logging, the admin panel, and the influencer dashboard with date-range reporting — all tested end-to-end against the real database and real Yampi/Shopify data.
+All four phases of the original plan are built and tested end-to-end against real Yampi/Shopify/database data: the sync foundation, the admin panel, the influencer dashboard, and the UTM link generator with click tracking.
 
-Not yet built: the UTM link generator UI (product picker → short link) and click analytics surfaced in the influencer dashboard. That's Phase 4. Also still needed before influencers can actually receive login emails: verifying a sending domain in Resend (see Resend setup above).
+The one thing still needed before influencers can actually receive login emails: verifying a sending domain in Resend (see the Resend setup section above) — until then, magic-link emails only deliver to the Resend account owner's own address (sandbox mode).

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { verifyInfluencerSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { countsAsRevenue } from "@/lib/orderStatus";
@@ -48,6 +49,10 @@ export default async function InfluencerDashboardPage({
   const discountGiven = revenueOrders.reduce((sum, o) => sum + Number(o.valueDiscount), 0);
   const aov = revenueOrders.length > 0 ? revenue / revenueOrders.length : 0;
 
+  const totalClicks = await prisma.clickEvent.count({
+    where: { utmLink: { influencerId: session.influencerId } },
+  });
+
   return (
     <div style={{ maxWidth: 900, margin: "40px auto", fontFamily: "sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -57,9 +62,12 @@ export default async function InfluencerDashboardPage({
             Seu cupom: <strong>{influencer.coupon?.code ?? "—"}</strong>
           </p>
         </div>
-        <form method="POST" action="/api/logout">
-          <button type="submit">Sair</button>
-        </form>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <Link href="/dashboard/links">Meus links de produtos</Link>
+          <form method="POST" action="/api/logout">
+            <button type="submit">Sair</button>
+          </form>
+        </div>
       </div>
 
       <form method="GET" style={{ display: "flex", gap: 8, alignItems: "end", margin: "24px 0" }}>
@@ -95,6 +103,10 @@ export default async function InfluencerDashboardPage({
         <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
           <div style={{ fontSize: 12, color: "#666" }}>Desconto concedido</div>
           <div style={{ fontSize: 24, fontWeight: 600 }}>{formatBRL(discountGiven)}</div>
+        </div>
+        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
+          <div style={{ fontSize: 12, color: "#666" }}>Cliques nos links (total)</div>
+          <div style={{ fontSize: 24, fontWeight: 600 }}>{totalClicks}</div>
         </div>
       </div>
 
