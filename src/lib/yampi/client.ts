@@ -30,7 +30,7 @@ export interface YampiPromocode {
   id: number;
   code: string;
   discount_type: string;
-  value: number;
+  value: string;
   active: boolean;
 }
 
@@ -42,6 +42,11 @@ interface YampiListResponse<T> {
       total_pages: number;
     };
   };
+}
+
+export async function getPromocodeById(id: string): Promise<YampiPromocode> {
+  const response = await yampiFetch<{ data: YampiPromocode }>(`/pricing/promocodes/${id}`);
+  return response.data;
 }
 
 export async function listAllPromocodes(): Promise<YampiPromocode[]> {

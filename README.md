@@ -34,8 +34,9 @@ Shopify retired the old "Develop apps in admin" static-token flow — custom app
 
 ### 4. App secrets
 
-- `AUTH_SECRET` — generate with `openssl rand -base64 32`, used to sign influencer magic-link tokens.
+- `AUTH_SECRET` — generate with `openssl rand -base64 32`. Signs the admin session cookie (and will sign influencer magic-link tokens once Phase 3 is built).
 - `CRON_SECRET` — generate the same way. When set, Vercel Cron automatically sends it as `Authorization: Bearer <value>`, which is how `/api/cron/*` routes authorize scheduled runs (see `vercel.json`).
+- `ADMIN_PASSWORD` — generate with `openssl rand -hex 12`. Shared password for the Strike staff admin panel at `/admin` (single credential by design — no per-staff accounts yet).
 - `APP_BASE_URL` — the deployed URL, used when building short links (`/l/:slug`).
 
 ## Local development
@@ -49,27 +50,44 @@ npm run dev
 ## Data sync model
 
 - **Orders**: real-time via the Yampi webhook at `/api/webhooks/yampi` — no polling needed for sales data.
-- **Coupons**: reconciled every 30 min via `/api/cron/sync-coupons` (Yampi `pricing/promocodes`). This only *updates* coupons already mapped to an influencer in the admin panel — it never auto-creates the influencer↔coupon link, since that's a deliberate business decision.
-- **Products**: reconciled every 30 min via `/api/cron/sync-products` (Shopify Admin GraphQL). Products not published to the Online Store sales channel are skipped (no page to link to).
+- **Coupons**: reconciled once daily via `/api/cron/sync-coupons` (Yampi `pricing/promocodes`) — daily, not more frequent, since Vercel's Hobby plan rejects cron schedules faster than once/day, and real order data doesn't depend on this job anyway. This only *updates* coupons already mapped to an influencer in the admin panel — it never auto-creates the influencer↔coupon link, since that's a deliberate business decision (see admin panel below).
+- **Products**: reconciled once daily via `/api/cron/sync-products` (Shopify Admin GraphQL). Products not published to the Online Store sales channel are skipped (no page to link to).
+
+## Admin panel
+
+`/admin` (protected by `ADMIN_PASSWORD`, see above) is where Strike staff map an influencer to their Yampi coupon:
+
+1. Log in at `/admin/login`.
+2. **+ New influencer** — pick from a live list of Yampi coupons not yet mapped to anyone, fetched directly from the Yampi API at page-load time (not from the local cache, so it's always current).
+3. The dashboard lists every influencer with their coupon, order count, and revenue (paid orders only), and lets you deactivate/reactivate.
+
+Auth is a single shared password (no per-staff accounts) signed into an HttpOnly session cookie — intentionally simple for Phase 2; see `src/lib/session.ts` and `src/proxy.ts`.
+
+> Note: this Next.js version renamed the `middleware.ts` file convention to `proxy.ts` (the old name is deprecated) — that's why route protection lives in `src/proxy.ts`, not `src/middleware.ts`.
 
 ## Project structure
 
 ```
 src/
   app/
-    api/webhooks/yampi/    # Yampi order webhook receiver
-    api/cron/               # Scheduled coupon/product sync (Vercel Cron)
-    l/[slug]/                # Short-link redirect + click logging
+    admin/                   # Admin panel pages (login, dashboard, new influencer)
+    api/admin/                # Admin login/logout/influencer mutation routes
+    api/webhooks/yampi/       # Yampi order webhook receiver
+    api/cron/                  # Scheduled coupon/product sync (Vercel Cron)
+    l/[slug]/                   # Short-link redirect + click logging
   lib/
-    yampi/                  # Yampi API client, webhook verification, order upsert
-    shopify/                 # Shopify Admin GraphQL client, product sync
-    cron/                    # Cron auth guard
-    prisma.ts                # Prisma client singleton (Neon driver adapter)
-prisma/schema.prisma          # Influencer, Coupon, Order, Product, UtmLink, ClickEvent
+    yampi/                    # Yampi API client, webhook verification, order upsert
+    shopify/                   # Shopify Admin GraphQL client, product sync
+    cron/                      # Cron auth guard
+    session.ts                 # Admin session cookie sign/verify (jose)
+    dal.ts                      # verifyAdminSession() data access layer helper
+    prisma.ts                   # Prisma client singleton (Neon driver adapter)
+  proxy.ts                      # Route protection for /admin and /api/admin (renamed from middleware.ts)
+prisma/schema.prisma            # Influencer, Coupon, Order, Product, UtmLink, ClickEvent
 ```
 
 ## What's built vs. what's next
 
-Built so far (Phase 0–1 of the project plan): project scaffold, data model, Yampi webhook ingestion, Yampi coupon sync, Shopify product sync, short-link redirect + click logging.
+Built so far (Phases 0–2 of the project plan): project scaffold, data model, Yampi webhook ingestion (verified live), Yampi coupon sync, Shopify product sync (verified live), short-link redirect + click logging, and the admin panel (auth + influencer↔coupon mapping, tested end-to-end against the real database).
 
-Not yet built: influencer/admin authentication, the admin panel (influencer↔coupon mapping UI), and the influencer dashboard (reports, UTM link generator UI). Those are Phases 2–4.
+Not yet built: the influencer-facing dashboard (self-serve login, sales reports by date range) and the UTM link generator UI with click analytics. Those are Phases 3–4.
