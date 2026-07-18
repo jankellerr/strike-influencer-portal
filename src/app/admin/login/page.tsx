@@ -1,3 +1,5 @@
+import { Button, Card, ErrorText, Input, Label, Wordmark } from "@/components/ui";
+
 export default async function AdminLoginPage({
   searchParams,
 }: {
@@ -6,29 +8,32 @@ export default async function AdminLoginPage({
   const { error } = await searchParams;
 
   return (
-    <div style={{ maxWidth: 360, margin: "80px auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>Strike Admin</h1>
-      <form method="POST" action="/api/admin/login">
-        <label htmlFor="password" style={{ display: "block", marginBottom: 4 }}>
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoFocus
-          required
-          style={{ width: "100%", padding: 8, marginBottom: 12, boxSizing: "border-box" }}
-        />
-        {error && (
-          <p style={{ color: "#b91c1c", marginBottom: 12, fontSize: 14 }}>
-            Incorrect password.
+    <div className="flex flex-1 items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <Wordmark />
+          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-strike-muted">
+            Painel administrativo
           </p>
-        )}
-        <button type="submit" style={{ width: "100%", padding: 8 }}>
-          Log in
-        </button>
-      </form>
+        </div>
+        <Card>
+          <form method="POST" action="/api/admin/login">
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoFocus
+              required
+              className="mb-4"
+            />
+            {error && <ErrorText>Senha incorreta.</ErrorText>}
+            <Button type="submit" className="w-full">
+              Entrar
+            </Button>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 }

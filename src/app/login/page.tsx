@@ -1,3 +1,5 @@
+import { Button, Card, ErrorText, Input, Label, Wordmark } from "@/components/ui";
+
 export default async function InfluencerLoginPage({
   searchParams,
 }: {
@@ -5,41 +7,39 @@ export default async function InfluencerLoginPage({
 }) {
   const { sent, error } = await searchParams;
 
-  if (sent) {
-    return (
-      <div style={{ maxWidth: 360, margin: "80px auto", fontFamily: "sans-serif" }}>
-        <h1 style={{ fontSize: 20, marginBottom: 16 }}>Check your email</h1>
-        <p style={{ color: "#444", fontSize: 14 }}>
-          If that email is registered, we sent a login link. It expires in 15 minutes.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ maxWidth: 360, margin: "80px auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>Strike Influencer Portal</h1>
-      <form method="POST" action="/api/login">
-        <label htmlFor="email" style={{ display: "block", marginBottom: 4 }}>
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoFocus
-          required
-          style={{ width: "100%", padding: 8, marginBottom: 12, boxSizing: "border-box" }}
-        />
-        {error === "expired" && (
-          <p style={{ color: "#b91c1c", marginBottom: 12, fontSize: 14 }}>
-            That link expired or was already used. Request a new one below.
+    <div className="flex flex-1 items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <Wordmark />
+          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-strike-muted">
+            Portal do influenciador
           </p>
+        </div>
+
+        {sent ? (
+          <Card>
+            <h1 className="mb-2 text-lg font-bold">Verifique seu email</h1>
+            <p className="text-sm text-strike-muted">
+              Se esse email estiver cadastrado, enviamos um link de acesso. Ele expira em 15
+              minutos e só pode ser usado uma vez.
+            </p>
+          </Card>
+        ) : (
+          <Card>
+            <form method="POST" action="/api/login">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" autoFocus required className="mb-4" />
+              {error === "expired" && (
+                <ErrorText>Esse link expirou ou já foi usado. Peça um novo abaixo.</ErrorText>
+              )}
+              <Button type="submit" className="w-full">
+                Enviar link de acesso
+              </Button>
+            </form>
+          </Card>
         )}
-        <button type="submit" style={{ width: "100%", padding: 8 }}>
-          Send login link
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

@@ -10,3 +10,20 @@ export const EXCLUDED_FROM_REVENUE_STATUSES = ["cancelled", "refused", "waiting_
 export function countsAsRevenue(status: string): boolean {
   return !EXCLUDED_FROM_REVENUE_STATUSES.includes(status);
 }
+
+/** Confirmed against Strike's real order status distribution. */
+const STATUS_LABELS_PT: Record<string, string> = {
+  paid: "Pago",
+  on_carriage: "Em transporte",
+  invoiced: "Faturado",
+  delivered: "Entregue",
+  handling_products: "Preparando",
+  ready_for_shipping: "Pronto para envio",
+  cancelled: "Cancelado",
+  refused: "Recusado",
+  waiting_payment: "Aguardando pagamento",
+};
+
+export function statusLabelPt(status: string): string {
+  return STATUS_LABELS_PT[status] ?? status;
+}

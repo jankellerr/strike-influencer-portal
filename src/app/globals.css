@@ -1,26 +1,27 @@
 @import "tailwindcss";
 
+/*
+ * Palette pulled directly from strikeco.com.br's live theme CSS variables
+ * (--background-primary, --text-primary, --button-background-secondary):
+ * off-white page background, near-black ink, and a confident yellow accent.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --strike-bg: #f0f0f0;
+  --strike-black: #1a1a1a;
+  --strike-yellow: #f0c417;
+  --strike-white: #ffffff;
+  --strike-border: #dcdcdc;
+  --strike-muted: #7b7b7b;
+  --strike-danger: #c2410c;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  --color-strike-bg: var(--strike-bg);
+  --color-strike-black: var(--strike-black);
+  --color-strike-yellow: var(--strike-yellow);
+  --color-strike-white: var(--strike-white);
+  --color-strike-border: var(--strike-border);
+  --color-strike-muted: var(--strike-muted);
+  --color-strike-danger: var(--strike-danger);
+  --font-sans: var(--font-barlow);
 }

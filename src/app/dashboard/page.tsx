@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { verifyInfluencerSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { countsAsRevenue } from "@/lib/orderStatus";
+import { countsAsRevenue, statusLabelPt } from "@/lib/orderStatus";
 import { calculateCommission, COMMISSION_RATE } from "@/lib/commission";
 import { getCurrentMonthRangeBrazil } from "@/lib/dateRanges";
+import { TopBar } from "@/components/TopBar";
+import { Button, Input, Label, StatTile } from "@/components/ui";
 
 function formatBRL(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -74,116 +76,99 @@ export default async function InfluencerDashboardPage({
   });
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", fontFamily: "sans-serif" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1 style={{ fontSize: 20, marginBottom: 4 }}>Olá, {influencer.name}</h1>
-          <p style={{ color: "#666", fontSize: 14 }}>
-            Seu cupom: <strong>{influencer.coupon?.code ?? "—"}</strong>
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <Link href="/dashboard/links">Meus links de produtos</Link>
-          <form method="POST" action="/api/logout">
-            <button type="submit">Sair</button>
-          </form>
-        </div>
-      </div>
+    <>
+      <TopBar label={influencer.coupon?.code ?? "Influenciador"}>
+        <Link href="/dashboard/links" className="text-strike-yellow hover:brightness-110">
+          Meus links de produtos
+        </Link>
+        <form method="POST" action="/api/logout">
+          <button type="submit" className="text-white/70 hover:text-white">
+            Sair
+          </button>
+        </form>
+      </TopBar>
 
-      <div
-        style={{
-          background: "#111",
-          color: "#fff",
-          borderRadius: 8,
-          padding: 20,
-          margin: "24px 0",
-        }}
-      >
-        <div style={{ fontSize: 12, color: "#bbb", textTransform: "capitalize" }}>
-          Sua comissão em {monthName}
-        </div>
-        <div style={{ fontSize: 32, fontWeight: 700 }}>{formatBRL(monthCommission)}</div>
-        <div style={{ fontSize: 12, color: "#bbb", marginTop: 4 }}>
-          {(COMMISSION_RATE * 100).toFixed(0)}% sobre {formatBRL(monthProductValue)} em produtos
-          vendidos (frete, impostos e parcelamento não entram na conta)
-        </div>
-      </div>
+      <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+        <h1 className="mb-1 text-2xl font-bold">Olá, {influencer.name}</h1>
+        <p className="mb-6 text-sm text-strike-muted">
+          Cupom: <span className="font-semibold text-strike-black">{influencer.coupon?.code ?? "—"}</span>
+        </p>
 
-      <form method="GET" style={{ display: "flex", gap: 8, alignItems: "end", margin: "24px 0" }}>
-        <div>
-          <label htmlFor="from" style={{ display: "block", fontSize: 12, color: "#666" }}>
-            De
-          </label>
-          <input id="from" name="from" type="date" defaultValue={from} />
+        <div className="mb-8 rounded-lg bg-strike-black p-6 text-strike-white">
+          <div className="text-xs font-medium uppercase tracking-wide text-white/60 capitalize">
+            Sua comissão em {monthName}
+          </div>
+          <div className="mt-1 text-4xl font-black text-strike-yellow">
+            {formatBRL(monthCommission)}
+          </div>
+          <div className="mt-2 text-xs text-white/60">
+            {(COMMISSION_RATE * 100).toFixed(0)}% sobre {formatBRL(monthProductValue)} em produtos
+            vendidos — frete, impostos e parcelamento não entram na conta
+          </div>
         </div>
-        <div>
-          <label htmlFor="to" style={{ display: "block", fontSize: 12, color: "#666" }}>
-            Até
-          </label>
-          <input id="to" name="to" type="date" defaultValue={to} />
-        </div>
-        <button type="submit">Filtrar</button>
-        {(from || to) && <a href="/dashboard">Limpar</a>}
-      </form>
 
-      <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
-          <div style={{ fontSize: 12, color: "#666" }}>Comissão (período filtrado)</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{formatBRL(commission)}</div>
-        </div>
-        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
-          <div style={{ fontSize: 12, color: "#666" }}>Vendas (total do pedido)</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{formatBRL(revenue)}</div>
-        </div>
-        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
-          <div style={{ fontSize: 12, color: "#666" }}>Pedidos</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{revenueOrders.length}</div>
-        </div>
-        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
-          <div style={{ fontSize: 12, color: "#666" }}>Ticket médio</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{formatBRL(aov)}</div>
-        </div>
-        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
-          <div style={{ fontSize: 12, color: "#666" }}>Desconto concedido</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{formatBRL(discountGiven)}</div>
-        </div>
-        <div style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, flex: 1 }}>
-          <div style={{ fontSize: 12, color: "#666" }}>Cliques nos links (total)</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{totalClicks}</div>
-        </div>
-      </div>
-
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
-            <th style={{ padding: 8 }}>Data</th>
-            <th style={{ padding: 8 }}>Status</th>
-            <th style={{ padding: 8 }}>Valor dos produtos</th>
-            <th style={{ padding: 8 }}>Comissão</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => (
-            <tr key={order.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={{ padding: 8 }}>{formatDate(order.orderedAt)}</td>
-              <td style={{ padding: 8 }}>{order.status}</td>
-              <td style={{ padding: 8 }}>{formatBRL(Number(order.valueProducts ?? 0))}</td>
-              <td style={{ padding: 8 }}>
-                {countsAsRevenue(order.status)
-                  ? formatBRL(calculateCommission(Number(order.valueProducts ?? 0)))
-                  : "—"}
-              </td>
-            </tr>
-          ))}
-          {orders.length === 0 && (
-            <tr>
-              <td colSpan={4} style={{ padding: 16, color: "#666" }}>
-                Nenhum pedido neste período.
-              </td>
-            </tr>
+        <form method="GET" className="mb-6 flex flex-wrap items-end gap-3">
+          <div>
+            <Label htmlFor="from">De</Label>
+            <Input id="from" name="from" type="date" defaultValue={from} className="w-auto" />
+          </div>
+          <div>
+            <Label htmlFor="to">Até</Label>
+            <Input id="to" name="to" type="date" defaultValue={to} className="w-auto" />
+          </div>
+          <Button type="submit" variant="ghost">
+            Filtrar
+          </Button>
+          {(from || to) && (
+            <a href="/dashboard" className="text-sm text-strike-muted underline">
+              Limpar
+            </a>
           )}
-        </tbody>
-      </table>
-    </div>
+        </form>
+
+        <div className="mb-8 flex flex-wrap gap-4">
+          <StatTile label="Comissão (período filtrado)" value={formatBRL(commission)} />
+          <StatTile label="Vendas (total do pedido)" value={formatBRL(revenue)} />
+          <StatTile label="Pedidos" value={String(revenueOrders.length)} />
+          <StatTile label="Ticket médio" value={formatBRL(aov)} />
+          <StatTile label="Desconto concedido" value={formatBRL(discountGiven)} />
+          <StatTile label="Cliques nos links" value={String(totalClicks)} />
+        </div>
+
+        <div className="overflow-x-auto rounded-lg border border-strike-border bg-strike-white">
+          <table className="w-full min-w-[560px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-strike-border text-left text-xs uppercase tracking-wide text-strike-muted">
+                <th className="px-4 py-3">Data</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Valor dos produtos</th>
+                <th className="px-4 py-3">Comissão</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id} className="border-b border-strike-border last:border-0">
+                  <td className="px-4 py-3">{formatDate(order.orderedAt)}</td>
+                  <td className="px-4 py-3">{statusLabelPt(order.status)}</td>
+                  <td className="px-4 py-3">{formatBRL(Number(order.valueProducts ?? 0))}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {countsAsRevenue(order.status)
+                      ? formatBRL(calculateCommission(Number(order.valueProducts ?? 0)))
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+              {orders.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-strike-muted">
+                    Nenhum pedido neste período.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 }
