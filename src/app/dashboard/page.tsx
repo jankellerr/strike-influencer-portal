@@ -81,6 +81,9 @@ export default async function InfluencerDashboardPage({
         <Link href="/dashboard/links" className="text-strike-yellow hover:brightness-110">
           Meus links de produtos
         </Link>
+        <Link href="/dashboard/security" className="text-white/70 hover:text-white">
+          Senha
+        </Link>
         <form method="POST" action="/api/logout">
           <button type="submit" className="text-white/70 hover:text-white">
             Sair

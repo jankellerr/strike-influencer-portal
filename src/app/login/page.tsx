@@ -30,11 +30,17 @@ export default async function InfluencerLoginPage({
             <form method="POST" action="/api/login">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" autoFocus required className="mb-4" />
+              <Label htmlFor="password">Senha (opcional)</Label>
+              <Input id="password" name="password" type="password" className="mb-1" />
+              <p className="mb-4 text-xs text-strike-muted">
+                Deixe em branco para receber um link de acesso por email.
+              </p>
               {error === "expired" && (
                 <ErrorText>Esse link expirou ou já foi usado. Peça um novo abaixo.</ErrorText>
               )}
+              {error === "invalid" && <ErrorText>Email ou senha incorretos.</ErrorText>}
               <Button type="submit" className="w-full">
-                Enviar link de acesso
+                Entrar
               </Button>
             </form>
           </Card>
