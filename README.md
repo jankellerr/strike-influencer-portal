@@ -23,10 +23,14 @@ See `docs/PLAN.md`-equivalent context in the project history for the full archit
 
 ### 3. Shopify custom app
 
-1. In the Shopify admin: **Settings > Apps and sales channels > Develop apps > Create an app**.
-2. Configure Admin API scopes: `read_products` only (this app never writes to Shopify).
-3. Install the app and copy the **Admin API access token** into `.env` as `SHOPIFY_ADMIN_ACCESS_TOKEN`.
-4. Set `SHOPIFY_STORE_DOMAIN` to `your-store.myshopify.com`.
+Shopify retired the old "Develop apps in admin" static-token flow — custom apps are now created in the [Dev Dashboard](https://dev.shopify.com/dashboard).
+
+1. In the Dev Dashboard: **Apps > Create app > Start from Dev Dashboard**. Name it, e.g. "Strike Influencer Portal".
+2. **Versions** tab: set any app URL placeholder, add scope `read_products` only, pick the newest Webhooks API version, **Release**.
+3. **Home** tab: **Install app**, select Strike's store, **Install**. (Requires the app and store to be in the same Shopify organization.)
+4. **Settings** tab: copy **Client ID** and **Client secret** into `.env` as `SHOPIFY_CLIENT_ID` and `SHOPIFY_CLIENT_SECRET`. Also set `SHOPIFY_STORE_DOMAIN` to `your-store.myshopify.com`.
+5. In the Dev Dashboard app's **Configuration** (or **URLs**) settings, add `http://localhost:3000/api/shopify/oauth/callback` to the allowed redirect URLs (add the production URL too once deployed).
+6. **Get the real access token** — this is the part that differs from most tutorials: on a production store, the `client_credentials` grant silently returns a token with no scopes (it only works on Shopify dev stores). Instead, run the app locally (`npm run dev`) and visit `http://localhost:3000/api/shopify/oauth/start` in your browser. You'll be asked to approve access on the Shopify side; after approving, the callback page shows a permanent offline access token — copy it into `.env` as `SHOPIFY_ADMIN_ACCESS_TOKEN`. This is a one-time step.
 
 ### 4. App secrets
 

@@ -9,6 +9,12 @@ interface GraphQLResponse<T> {
   errors?: Array<{ message: string }>;
 }
 
+/**
+ * Uses a static offline access token obtained once via the OAuth authorization
+ * code grant (see src/app/api/shopify/oauth/). client_credentials was tried
+ * first but only works on Shopify development stores, not production ones —
+ * see README "Shopify custom app" section for why.
+ */
 export async function shopifyAdminGraphQL<T>(
   query: string,
   variables?: Record<string, unknown>,
