@@ -72,6 +72,7 @@ export interface YampiOrder {
   value_total: number;
   value_discount: number;
   promocode_id: number | null;
+  created_at: { date: string; timezone?: string };
 }
 
 /**

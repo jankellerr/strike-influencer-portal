@@ -65,13 +65,13 @@ model Order {
   status         String
   valueTotal     Decimal
   valueDiscount  Decimal  @default(0)
-  paidAt         DateTime?
+  orderedAt      DateTime
   rawItems       Json
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@index([couponId])
-  @@index([paidAt])
+  @@index([orderedAt])
 }
 
 model Product {

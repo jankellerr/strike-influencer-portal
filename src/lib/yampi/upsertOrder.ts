@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { parseYampiDate } from "@/lib/yampi/parseYampiDate";
 
 /**
  * Confirmed against real orders via GET /v2/{alias}/orders and
  * GET /v2/{alias}/orders/{id} — both the webhook payload's `resource` and the
  * REST order objects share this shape. Notably: there is no `paid_at` field
- * on the order resource at all (despite what Yampi's docs implied) — Order.paidAt
- * is left null until we design a real "paid" transition mapping (e.g. from
- * status alias history), so it's not populated yet.
+ * on the order resource at all (despite what Yampi's docs implied); `created_at`
+ * is the real, reliable order date used for period-based reporting.
  */
 export interface YampiOrderData {
   id: number;
@@ -14,6 +14,7 @@ export interface YampiOrderData {
   value_total: number;
   value_discount: number;
   promocode_id: number | null;
+  created_at: { date: string; timezone?: string };
 }
 
 export async function upsertOrder(order: YampiOrderData) {
@@ -25,6 +26,7 @@ export async function upsertOrder(order: YampiOrderData) {
 
   const status =
     typeof order.status === "string" ? order.status : (order.status?.data?.alias ?? "unknown");
+  const orderedAt = parseYampiDate(order.created_at);
 
   await prisma.order.upsert({
     where: { yampiOrderId: String(order.id) },
@@ -34,6 +36,7 @@ export async function upsertOrder(order: YampiOrderData) {
       status,
       valueTotal: order.value_total,
       valueDiscount: order.value_discount ?? 0,
+      orderedAt,
       rawItems: {},
     },
     update: {
@@ -41,6 +44,7 @@ export async function upsertOrder(order: YampiOrderData) {
       status,
       valueTotal: order.value_total,
       valueDiscount: order.value_discount ?? 0,
+      orderedAt,
     },
   });
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifyAdminSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
+import { EXCLUDED_FROM_REVENUE_STATUSES } from "@/lib/orderStatus";
 
 export default async function AdminDashboardPage() {
   await verifyAdminSession();
@@ -10,10 +11,8 @@ export default async function AdminDashboardPage() {
     include: {
       coupon: {
         include: {
-          // Excludes unpaid orders from revenue. Confirmed status string from
-          // Yampi's webhook payload; revisit if other non-paid statuses show up.
           orders: {
-            where: { status: { not: "waiting_payment" } },
+            where: { status: { notIn: EXCLUDED_FROM_REVENUE_STATUSES } },
             select: { valueTotal: true },
           },
         },
