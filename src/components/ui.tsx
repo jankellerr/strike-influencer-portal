@@ -1,4 +1,11 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  LabelHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 import Image from "next/image";
 
 function cx(...classes: Array<string | false | undefined>): string {
@@ -49,6 +56,18 @@ export function StatTile({ label, value, hint }: { label: string; value: string;
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
+      className={cx(
+        "w-full rounded-md border border-strike-border bg-strike-white px-3 py-2 text-sm outline-none focus:border-strike-black",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
       className={cx(
         "w-full rounded-md border border-strike-border bg-strike-white px-3 py-2 text-sm outline-none focus:border-strike-black",
         className,

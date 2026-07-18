@@ -45,6 +45,9 @@ export default async function AdminDashboardPage() {
         <Link href="/admin/influencers/new" className="text-strike-yellow hover:brightness-110">
           + Novo influenciador
         </Link>
+        <Link href="/admin/videos" className="text-white/70 hover:text-white">
+          Vídeos
+        </Link>
         <form method="POST" action="/api/admin/logout">
           <button type="submit" className="text-white/70 hover:text-white">
             Sair
@@ -66,6 +69,7 @@ export default async function AdminDashboardPage() {
                 <th className="px-4 py-3">Vendas</th>
                 <th className="px-4 py-3">Comissão (mês atual)</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3"></th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -97,6 +101,14 @@ export default async function AdminDashboardPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/influencers/${influencer.id}/edit`}
+                        className="text-strike-black underline decoration-strike-yellow decoration-2 underline-offset-2 hover:text-strike-muted"
+                      >
+                        Editar
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
                       <form
                         method="POST"
                         action={`/api/admin/influencers/${influencer.id}/toggle-status`}
@@ -111,7 +123,7 @@ export default async function AdminDashboardPage() {
               })}
               {influencers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-strike-muted">
+                  <td colSpan={9} className="px-4 py-8 text-center text-strike-muted">
                     Nenhum influenciador ainda.
                   </td>
                 </tr>

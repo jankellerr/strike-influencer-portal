@@ -77,9 +77,12 @@ export default async function InfluencerDashboardPage({
 
   return (
     <>
-      <TopBar label={influencer.coupon?.code ?? "Influenciador"}>
+      <TopBar>
         <Link href="/dashboard/links" className="text-strike-yellow hover:brightness-110">
           Meus links de produtos
+        </Link>
+        <Link href="/dashboard/videos" className="text-white/70 hover:text-white">
+          Como usar
         </Link>
         <Link href="/dashboard/security" className="text-white/70 hover:text-white">
           Senha

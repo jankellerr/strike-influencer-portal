@@ -18,6 +18,17 @@ model Influencer {
   email        String   @unique
   passwordHash String?
   status       InfluencerStatus @default(ACTIVE)
+
+  phone               String?
+  cpf                 String?
+  shirtSize           String?
+  addressStreet       String?
+  addressNumber       String?
+  addressNeighborhood String?
+  addressCity         String?
+  addressState        String?
+  addressZip          String?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -115,4 +126,16 @@ model ClickEvent {
 
   @@index([utmLinkId])
   @@index([clickedAt])
+}
+
+model TutorialVideo {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  url         String
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
 }
