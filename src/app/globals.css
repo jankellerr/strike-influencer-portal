@@ -23,5 +23,5 @@
   --color-strike-border: var(--strike-border);
   --color-strike-muted: var(--strike-muted);
   --color-strike-danger: var(--strike-danger);
-  --font-sans: var(--font-barlow);
+  --font-sans: var(--font-helvetica-now);
 }
