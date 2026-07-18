@@ -74,34 +74,27 @@ export interface YampiOrder {
   promocode_id: number | null;
 }
 
-interface YampiScrollResponse<T> {
-  data: T[];
-  scroll_id: string | null;
-}
-
 /**
- * Orders use cursor pagination (scroll_id), not page numbers like promocodes.
- * There's no reliable server-side filter (promocode_id/date query params are
- * silently ignored, confirmed against the real API), so callers filter client-side.
- * Bounded to 200 pages (~20k orders) as a safety cap against runaway loops.
+ * The orders response includes a `scroll_id` field, but it's always null on
+ * this account (confirmed against the real API) -- a dead end, not a working
+ * cursor. Standard `page`-based pagination works correctly and exposes the
+ * real total via meta.pagination.total_pages, same as promocodes. There's no
+ * reliable server-side filter (promocode_id/date query params are silently
+ * ignored), so callers filter client-side.
  */
 export async function listAllOrders(): Promise<YampiOrder[]> {
   const results: YampiOrder[] = [];
-  let scrollId: string | null = null;
-  let pages = 0;
+  let page = 1;
+  let totalPages = 1;
 
   do {
-    const query: string = scrollId
-      ? `?limit=100&scroll_id=${encodeURIComponent(scrollId)}`
-      : `?limit=100`;
-    const response: YampiScrollResponse<YampiOrder> = await yampiFetch<
-      YampiScrollResponse<YampiOrder>
-    >(`/orders${query}`);
+    const response = await yampiFetch<YampiListResponse<YampiOrder>>(
+      `/orders?limit=100&page=${page}`,
+    );
     results.push(...response.data);
-    scrollId = response.scroll_id;
-    pages += 1;
-    if (response.data.length === 0) break;
-  } while (scrollId && pages < 200);
+    totalPages = response.meta.pagination.total_pages;
+    page += 1;
+  } while (page <= totalPages);
 
   return results;
 }
