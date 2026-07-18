@@ -90,7 +90,7 @@ export function Wordmark({ className }: { className?: string }) {
       alt="Strike Co."
       width={602}
       height={182}
-      className={cx("h-6 w-auto", className)}
+      className={cx("mx-auto h-6 w-auto", className)}
       priority
     />
   );
