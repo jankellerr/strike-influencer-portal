@@ -25,7 +25,12 @@ export default async function AdminDashboardPage() {
     <div style={{ maxWidth: 900, margin: "40px auto", fontFamily: "sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 20 }}>Influencers</h1>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <form method="POST" action="/api/admin/sync-orders">
+            <button type="submit" title="Pull in any orders placed before a coupon was mapped, or missed by the webhook">
+              Resync orders
+            </button>
+          </form>
           <Link href="/admin/influencers/new">+ New influencer</Link>
           <form method="POST" action="/api/admin/logout">
             <button type="submit">Log out</button>

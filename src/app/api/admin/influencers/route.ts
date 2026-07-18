@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getPromocodeById } from "@/lib/yampi/client";
+import { backfillOrders } from "@/lib/yampi/backfillOrders";
 
 const CreateInfluencerSchema = z.object({
   name: z.string().trim().min(1),
@@ -61,6 +62,10 @@ export async function POST(request: NextRequest) {
       },
     },
   });
+
+  // Pull in any pre-existing orders placed on this coupon before it was mapped —
+  // the webhook only captures orders going forward from when it was set up.
+  await backfillOrders();
 
   return NextResponse.redirect(new URL("/admin", request.url), 303);
 }

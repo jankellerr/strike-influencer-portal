@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyYampiWebhookSignature } from "@/lib/yampi/verifyWebhook";
-import {
-  upsertOrderFromWebhook,
-  type YampiOrderWebhookPayload,
-} from "@/lib/yampi/upsertOrderFromWebhook";
+import { upsertOrder, type YampiOrderData } from "@/lib/yampi/upsertOrder";
 
 const ORDER_EVENTS = new Set(["order.created", "order.paid", "order.status.updated"]);
 
@@ -21,13 +18,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
-  const payload = JSON.parse(rawBody) as YampiOrderWebhookPayload & { event: string };
+  const payload = JSON.parse(rawBody) as { event: string; resource: YampiOrderData };
 
   if (!ORDER_EVENTS.has(payload.event)) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  await upsertOrderFromWebhook(payload);
+  await upsertOrder(payload.resource);
 
   return NextResponse.json({ ok: true });
 }

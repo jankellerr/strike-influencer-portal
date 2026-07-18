@@ -65,3 +65,43 @@ export async function listAllPromocodes(): Promise<YampiPromocode[]> {
 
   return results;
 }
+
+export interface YampiOrder {
+  id: number;
+  status: { data?: { alias?: string } } | string;
+  value_total: number;
+  value_discount: number;
+  promocode_id: number | null;
+}
+
+interface YampiScrollResponse<T> {
+  data: T[];
+  scroll_id: string | null;
+}
+
+/**
+ * Orders use cursor pagination (scroll_id), not page numbers like promocodes.
+ * There's no reliable server-side filter (promocode_id/date query params are
+ * silently ignored, confirmed against the real API), so callers filter client-side.
+ * Bounded to 200 pages (~20k orders) as a safety cap against runaway loops.
+ */
+export async function listAllOrders(): Promise<YampiOrder[]> {
+  const results: YampiOrder[] = [];
+  let scrollId: string | null = null;
+  let pages = 0;
+
+  do {
+    const query: string = scrollId
+      ? `?limit=100&scroll_id=${encodeURIComponent(scrollId)}`
+      : `?limit=100`;
+    const response: YampiScrollResponse<YampiOrder> = await yampiFetch<
+      YampiScrollResponse<YampiOrder>
+    >(`/orders${query}`);
+    results.push(...response.data);
+    scrollId = response.scroll_id;
+    pages += 1;
+    if (response.data.length === 0) break;
+  } while (scrollId && pages < 200);
+
+  return results;
+}
