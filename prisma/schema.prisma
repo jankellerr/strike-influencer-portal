@@ -65,6 +65,7 @@ model Order {
   status         String
   valueTotal     Decimal
   valueDiscount  Decimal  @default(0)
+  valueProducts  Decimal
   orderedAt      DateTime
   rawItems       Json
   createdAt      DateTime @default(now())

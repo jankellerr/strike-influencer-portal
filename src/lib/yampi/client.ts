@@ -71,6 +71,7 @@ export interface YampiOrder {
   status: { data?: { alias?: string } } | string;
   value_total: number;
   value_discount: number;
+  value_products: number;
   promocode_id: number | null;
   created_at: { date: string; timezone?: string };
 }

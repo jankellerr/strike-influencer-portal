@@ -2,9 +2,17 @@ import Link from "next/link";
 import { verifyAdminSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { EXCLUDED_FROM_REVENUE_STATUSES } from "@/lib/orderStatus";
+import { calculateCommission } from "@/lib/commission";
+import { getCurrentMonthRangeBrazil } from "@/lib/dateRanges";
+
+function formatBRL(value: number): string {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 export default async function AdminDashboardPage() {
   await verifyAdminSession();
+
+  const { start: monthStart, end: monthEnd } = getCurrentMonthRangeBrazil();
 
   const influencers = await prisma.influencer.findMany({
     orderBy: { createdAt: "desc" },
@@ -13,7 +21,7 @@ export default async function AdminDashboardPage() {
         include: {
           orders: {
             where: { status: { notIn: EXCLUDED_FROM_REVENUE_STATUSES } },
-            select: { valueTotal: true },
+            select: { valueTotal: true, valueProducts: true, orderedAt: true },
           },
         },
       },
@@ -21,7 +29,7 @@ export default async function AdminDashboardPage() {
   });
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", fontFamily: "sans-serif" }}>
+    <div style={{ maxWidth: 1000, margin: "40px auto", fontFamily: "sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 20 }}>Influencers</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -45,6 +53,7 @@ export default async function AdminDashboardPage() {
             <th style={{ padding: 8 }}>Coupon</th>
             <th style={{ padding: 8 }}>Orders</th>
             <th style={{ padding: 8 }}>Revenue</th>
+            <th style={{ padding: 8 }}>Commission (this month)</th>
             <th style={{ padding: 8 }}>Status</th>
             <th style={{ padding: 8 }}></th>
           </tr>
@@ -53,15 +62,18 @@ export default async function AdminDashboardPage() {
           {influencers.map((influencer) => {
             const orders = influencer.coupon?.orders ?? [];
             const revenue = orders.reduce((sum, o) => sum + Number(o.valueTotal), 0);
+            const monthProductValue = orders
+              .filter((o) => o.orderedAt >= monthStart && o.orderedAt < monthEnd)
+              .reduce((sum, o) => sum + Number(o.valueProducts ?? 0), 0);
+            const monthCommission = calculateCommission(monthProductValue);
             return (
               <tr key={influencer.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: 8 }}>{influencer.name}</td>
                 <td style={{ padding: 8 }}>{influencer.email}</td>
                 <td style={{ padding: 8 }}>{influencer.coupon?.code ?? "—"}</td>
                 <td style={{ padding: 8 }}>{orders.length}</td>
-                <td style={{ padding: 8 }}>
-                  {revenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </td>
+                <td style={{ padding: 8 }}>{formatBRL(revenue)}</td>
+                <td style={{ padding: 8 }}>{formatBRL(monthCommission)}</td>
                 <td style={{ padding: 8 }}>{influencer.status}</td>
                 <td style={{ padding: 8 }}>
                   <form method="POST" action={`/api/admin/influencers/${influencer.id}/toggle-status`}>
@@ -75,7 +87,7 @@ export default async function AdminDashboardPage() {
           })}
           {influencers.length === 0 && (
             <tr>
-              <td colSpan={7} style={{ padding: 16, color: "#666" }}>
+              <td colSpan={8} style={{ padding: 16, color: "#666" }}>
                 No influencers yet.
               </td>
             </tr>
