@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import Image from "next/image";
 
 function cx(...classes: Array<string | false | undefined>): string {
   return classes.filter(Boolean).join(" ");
@@ -83,5 +84,14 @@ export function ErrorText({ children }: { children: ReactNode }) {
 }
 
 export function Wordmark({ className }: { className?: string }) {
-  return <span className={cx("text-xl font-black uppercase tracking-tight", className)}>Strike</span>;
+  return (
+    <Image
+      src="/strike-logo-black.png"
+      alt="Strike Co."
+      width={602}
+      height={182}
+      className={cx("h-6 w-auto", className)}
+      priority
+    />
+  );
 }
