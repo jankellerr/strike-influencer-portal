@@ -42,6 +42,7 @@ export default async function AdminDashboardPage({
           },
         },
       },
+      commissionPayments: { where: { month: selectedMonth } },
     },
   });
 
@@ -51,9 +52,11 @@ export default async function AdminDashboardPage({
     const monthRevenue = monthOrders.reduce((sum, o) => sum + Number(o.valueTotal), 0);
     const monthProductValue = monthOrders.reduce((sum, o) => sum + Number(o.valueProducts ?? 0), 0);
     const monthCommission = calculateCommission(monthProductValue);
-    return { influencer, monthRevenue, monthOrderCount: monthOrders.length, monthCommission };
+    const isPaid = influencer.commissionPayments[0]?.paid ?? false;
+    return { influencer, monthRevenue, monthOrderCount: monthOrders.length, monthCommission, isPaid };
   });
   const totalMonthCommission = rows.reduce((sum, r) => sum + r.monthCommission, 0);
+  const unpaidCount = rows.filter((r) => !r.isPaid).length;
   const selectedMonthLabel =
     monthOptions.find((o) => o.key === selectedMonth)?.label ?? selectedMonth;
 
@@ -82,7 +85,7 @@ export default async function AdminDashboardPage({
         </form>
       </TopBar>
 
-      <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-bold">Influenciadores</h1>
 
@@ -101,7 +104,7 @@ export default async function AdminDashboardPage({
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-strike-border bg-strike-white">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+          <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-strike-border text-left text-xs uppercase tracking-wide text-strike-muted">
                 <th className="px-4 py-3">Nome</th>
@@ -111,12 +114,14 @@ export default async function AdminDashboardPage({
                 <th className="px-4 py-3">Vendas ({selectedMonthLabel})</th>
                 <th className="px-4 py-3">Comissão ({selectedMonthLabel})</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Pagamento</th>
+                <th className="px-4 py-3"></th>
                 <th className="px-4 py-3"></th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ influencer, monthRevenue, monthOrderCount, monthCommission }) => (
+              {rows.map(({ influencer, monthRevenue, monthOrderCount, monthCommission, isPaid }) => (
                 <tr key={influencer.id} className="border-b border-strike-border last:border-0">
                   <td className="px-4 py-3 font-medium">{influencer.name}</td>
                   <td className="px-4 py-3 text-strike-muted">{influencer.email}</td>
@@ -134,6 +139,28 @@ export default async function AdminDashboardPage({
                     >
                       {influencer.status === "ACTIVE" ? "Ativo" : "Inativo"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={
+                        isPaid
+                          ? "rounded-full bg-strike-yellow/30 px-2 py-0.5 text-xs font-semibold text-strike-black"
+                          : "rounded-full bg-strike-border px-2 py-0.5 text-xs font-semibold text-strike-muted"
+                      }
+                    >
+                      {isPaid ? "Pago" : "Pendente"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <form
+                      method="POST"
+                      action={`/api/admin/influencers/${influencer.id}/commission-payment`}
+                    >
+                      <input type="hidden" name="month" value={selectedMonth} />
+                      <Button type="submit" variant="ghost" className="whitespace-nowrap px-2 py-1 text-xs">
+                        {isPaid ? "Desfazer" : "Marcar pago"}
+                      </Button>
+                    </form>
                   </td>
                   <td className="px-4 py-3">
                     <Link
@@ -157,7 +184,7 @@ export default async function AdminDashboardPage({
               ))}
               {influencers.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-strike-muted">
+                  <td colSpan={11} className="px-4 py-8 text-center text-strike-muted">
                     Nenhum influenciador ainda.
                   </td>
                 </tr>
@@ -168,9 +195,14 @@ export default async function AdminDashboardPage({
                 <tr className="border-t-2 border-strike-border bg-strike-black/[0.03] font-semibold">
                   <td className="px-4 py-3" colSpan={5}>
                     Total a pagar em {selectedMonthLabel}
+                    {unpaidCount > 0 && (
+                      <span className="ml-2 font-normal text-strike-muted">
+                        ({unpaidCount} pendente{unpaidCount > 1 ? "s" : ""})
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">{formatBRL(totalMonthCommission)}</td>
-                  <td className="px-4 py-3" colSpan={3}></td>
+                  <td className="px-4 py-3" colSpan={5}></td>
                 </tr>
               </tfoot>
             )}

@@ -3,7 +3,7 @@ import { verifyInfluencerSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { countsAsRevenue, statusLabelPt } from "@/lib/orderStatus";
 import { calculateCommission, COMMISSION_RATE } from "@/lib/commission";
-import { formatDateKeyBrazil, getCurrentMonthRangeBrazil } from "@/lib/dateRanges";
+import { formatDateKeyBrazil, getCurrentMonthKeyBrazil, getCurrentMonthRangeBrazil } from "@/lib/dateRanges";
 import { TopBar } from "@/components/TopBar";
 import { Button, Input, Label, StatTile } from "@/components/ui";
 
@@ -79,6 +79,13 @@ export default async function InfluencerDashboardPage({
   const monthCommission = calculateCommission(monthProductValue);
   const monthName = monthStart.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
+  const currentMonthPayment = await prisma.commissionPayment.findUnique({
+    where: {
+      influencerId_month: { influencerId: session.influencerId, month: getCurrentMonthKeyBrazil() },
+    },
+  });
+  const isCommissionPaid = currentMonthPayment?.paid ?? false;
+
   const totalClicks = await prisma.clickEvent.count({
     where: { utmLink: { influencerId: session.influencerId } },
   });
@@ -109,8 +116,19 @@ export default async function InfluencerDashboardPage({
         </p>
 
         <div className="mb-8 rounded-lg bg-strike-black p-6 text-strike-white">
-          <div className="text-xs font-medium uppercase tracking-wide text-white/60 capitalize">
-            Sua comissão em {monthName}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs font-medium uppercase tracking-wide text-white/60 capitalize">
+              Sua comissão em {monthName}
+            </div>
+            <span
+              className={
+                isCommissionPaid
+                  ? "rounded-full bg-strike-yellow/30 px-2 py-0.5 text-xs font-semibold text-strike-yellow"
+                  : "rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/60"
+              }
+            >
+              {isCommissionPaid ? "Pago" : "Pagamento pendente"}
+            </span>
           </div>
           <div className="mt-1 text-4xl font-black text-strike-yellow">
             {formatBRL(monthCommission)}

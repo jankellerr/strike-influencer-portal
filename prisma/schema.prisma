@@ -32,9 +32,10 @@ model Influencer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  coupon      Coupon?
-  utmLinks    UtmLink[]
-  loginTokens LoginToken[]
+  coupon             Coupon?
+  utmLinks           UtmLink[]
+  loginTokens        LoginToken[]
+  commissionPayments CommissionPayment[]
 }
 
 enum InfluencerStatus {
@@ -138,4 +139,21 @@ model TutorialVideo {
   updatedAt   DateTime @updatedAt
 
   @@index([order])
+}
+
+/// Whether an influencer's commission for a given calendar month ("YYYY-MM",
+/// Brazil timezone) has been paid out. Admin-only to set; influencers can
+/// only read their own.
+model CommissionPayment {
+  id           String     @id @default(cuid())
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  influencerId String
+  month        String
+  paid         Boolean    @default(false)
+  paidAt       DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([influencerId, month])
+  @@index([month])
 }
