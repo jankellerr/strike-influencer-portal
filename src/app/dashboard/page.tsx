@@ -3,7 +3,7 @@ import { verifyInfluencerSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { countsAsRevenue, statusLabelPt } from "@/lib/orderStatus";
 import { calculateCommission, COMMISSION_RATE } from "@/lib/commission";
-import { getCurrentMonthRangeBrazil } from "@/lib/dateRanges";
+import { formatDateKeyBrazil, getCurrentMonthRangeBrazil } from "@/lib/dateRanges";
 import { TopBar } from "@/components/TopBar";
 import { Button, Input, Label, StatTile } from "@/components/ui";
 
@@ -28,8 +28,17 @@ export default async function InfluencerDashboardPage({
     include: { coupon: true },
   });
 
-  const fromDate = from ? new Date(`${from}T00:00:00-03:00`) : null;
-  const toDate = to ? new Date(`${to}T23:59:59-03:00`) : null;
+  const { start: monthStart, end: monthEnd } = getCurrentMonthRangeBrazil();
+  const defaultFrom = formatDateKeyBrazil(monthStart);
+  const defaultTo = formatDateKeyBrazil(new Date(monthEnd.getTime() - 1));
+
+  // Before the influencer applies any filter of their own, default to the
+  // current month rather than showing all-time totals.
+  const effectiveFrom = from ?? defaultFrom;
+  const effectiveTo = to ?? defaultTo;
+
+  const fromDate = effectiveFrom ? new Date(`${effectiveFrom}T00:00:00-03:00`) : null;
+  const toDate = effectiveTo ? new Date(`${effectiveTo}T23:59:59-03:00`) : null;
 
   const orders = influencer.coupon
     ? await prisma.order.findMany({
@@ -55,7 +64,6 @@ export default async function InfluencerDashboardPage({
   const aov = revenueOrders.length > 0 ? revenue / revenueOrders.length : 0;
   const commission = calculateCommission(productValue);
 
-  const { start: monthStart, end: monthEnd } = getCurrentMonthRangeBrazil();
   const monthOrders = influencer.coupon
     ? await prisma.order.findMany({
         where: {
@@ -116,11 +124,11 @@ export default async function InfluencerDashboardPage({
         <form method="GET" className="mb-6 flex flex-wrap items-end gap-3">
           <div>
             <Label htmlFor="from">De</Label>
-            <Input id="from" name="from" type="date" defaultValue={from} className="w-auto" />
+            <Input id="from" name="from" type="date" defaultValue={effectiveFrom} className="w-auto" />
           </div>
           <div>
             <Label htmlFor="to">Até</Label>
-            <Input id="to" name="to" type="date" defaultValue={to} className="w-auto" />
+            <Input id="to" name="to" type="date" defaultValue={effectiveTo} className="w-auto" />
           </div>
           <Button type="submit" variant="ghost">
             Filtrar

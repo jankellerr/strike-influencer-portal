@@ -41,6 +41,16 @@ export function getCurrentMonthRangeBrazil(): { start: Date; end: Date } {
   return getMonthRangeBrazil(getCurrentMonthKeyBrazil());
 }
 
+/** "YYYY-MM-DD" calendar date for `date` in Brazil's timezone, e.g. for a date input's value. */
+export function formatDateKeyBrazil(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BRAZIL_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 /**
  * The last `count` month keys (including the current one), most recent
  * first, each paired with a Portuguese label for a <select> option.
