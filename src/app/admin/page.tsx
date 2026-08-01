@@ -47,11 +47,11 @@ export default async function AdminDashboardPage({
 
   const rows = influencers.map((influencer) => {
     const orders = influencer.coupon?.orders ?? [];
-    const revenue = orders.reduce((sum, o) => sum + Number(o.valueTotal), 0);
     const monthOrders = orders.filter((o) => o.orderedAt >= monthStart && o.orderedAt < monthEnd);
+    const monthRevenue = monthOrders.reduce((sum, o) => sum + Number(o.valueTotal), 0);
     const monthProductValue = monthOrders.reduce((sum, o) => sum + Number(o.valueProducts ?? 0), 0);
     const monthCommission = calculateCommission(monthProductValue);
-    return { influencer, revenue, monthOrderCount: monthOrders.length, monthCommission };
+    return { influencer, monthRevenue, monthOrderCount: monthOrders.length, monthCommission };
   });
   const totalMonthCommission = rows.reduce((sum, r) => sum + r.monthCommission, 0);
   const selectedMonthLabel =
@@ -108,7 +108,7 @@ export default async function AdminDashboardPage({
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Cupom</th>
                 <th className="px-4 py-3">Pedidos</th>
-                <th className="px-4 py-3">Vendas</th>
+                <th className="px-4 py-3">Vendas ({selectedMonthLabel})</th>
                 <th className="px-4 py-3">Comissão ({selectedMonthLabel})</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3"></th>
@@ -116,13 +116,13 @@ export default async function AdminDashboardPage({
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ influencer, revenue, monthOrderCount, monthCommission }) => (
+              {rows.map(({ influencer, monthRevenue, monthOrderCount, monthCommission }) => (
                 <tr key={influencer.id} className="border-b border-strike-border last:border-0">
                   <td className="px-4 py-3 font-medium">{influencer.name}</td>
                   <td className="px-4 py-3 text-strike-muted">{influencer.email}</td>
                   <td className="px-4 py-3">{influencer.coupon?.code ?? "—"}</td>
                   <td className="px-4 py-3">{monthOrderCount}</td>
-                  <td className="px-4 py-3">{formatBRL(revenue)}</td>
+                  <td className="px-4 py-3">{formatBRL(monthRevenue)}</td>
                   <td className="px-4 py-3 font-semibold">{formatBRL(monthCommission)}</td>
                   <td className="px-4 py-3">
                     <span
