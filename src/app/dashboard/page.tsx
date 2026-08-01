@@ -3,7 +3,13 @@ import { verifyInfluencerSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { countsAsRevenue, statusLabelPt } from "@/lib/orderStatus";
 import { calculateCommission, COMMISSION_RATE } from "@/lib/commission";
-import { formatDateKeyBrazil, getCurrentMonthKeyBrazil, getCurrentMonthRangeBrazil } from "@/lib/dateRanges";
+import {
+  formatDateKeyBrazil,
+  getCurrentMonthKeyBrazil,
+  getCurrentMonthRangeBrazil,
+  getMonthRangeBrazil,
+  getRecentMonthOptionsBrazil,
+} from "@/lib/dateRanges";
 import { TopBar } from "@/components/TopBar";
 import { Button, Input, Label, StatTile } from "@/components/ui";
 
@@ -14,6 +20,8 @@ function formatBRL(value: number): string {
 function formatDate(date: Date): string {
   return date.toLocaleDateString("pt-BR");
 }
+
+const HISTORY_MONTHS = 12;
 
 export default async function InfluencerDashboardPage({
   searchParams,
@@ -86,6 +94,33 @@ export default async function InfluencerDashboardPage({
   });
   const isCommissionPaid = currentMonthPayment?.paid ?? false;
 
+  const historyMonths = getRecentMonthOptionsBrazil(HISTORY_MONTHS);
+  const { start: historyStart } = getMonthRangeBrazil(historyMonths[historyMonths.length - 1].key);
+
+  const historyOrders = influencer.coupon
+    ? await prisma.order.findMany({
+        where: { couponId: influencer.coupon.id, orderedAt: { gte: historyStart } },
+        select: { status: true, valueProducts: true, orderedAt: true },
+      })
+    : [];
+
+  const historyPayments = await prisma.commissionPayment.findMany({
+    where: {
+      influencerId: session.influencerId,
+      month: { in: historyMonths.map((m) => m.key) },
+    },
+  });
+  const paidByMonth = new Map(historyPayments.map((p) => [p.month, p.paid]));
+
+  const commissionHistory = historyMonths.map(({ key, label }) => {
+    const { start, end } = getMonthRangeBrazil(key);
+    const productValueForMonth = historyOrders
+      .filter((o) => countsAsRevenue(o.status) && o.orderedAt >= start && o.orderedAt < end)
+      .reduce((sum, o) => sum + Number(o.valueProducts ?? 0), 0);
+    const commissionForMonth = calculateCommission(productValueForMonth);
+    return { key, label, commissionForMonth, paid: paidByMonth.get(key) ?? false };
+  });
+
   const totalClicks = await prisma.clickEvent.count({
     where: { utmLink: { influencerId: session.influencerId } },
   });
@@ -120,15 +155,17 @@ export default async function InfluencerDashboardPage({
             <div className="text-xs font-medium uppercase tracking-wide text-white/60 capitalize">
               Sua comissão em {monthName}
             </div>
-            <span
-              className={
-                isCommissionPaid
-                  ? "rounded-full bg-strike-yellow/30 px-2 py-0.5 text-xs font-semibold text-strike-yellow"
-                  : "rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/60"
-              }
-            >
-              {isCommissionPaid ? "Pago" : "Pagamento pendente"}
-            </span>
+            {monthCommission > 0 && (
+              <span
+                className={
+                  isCommissionPaid
+                    ? "rounded-full bg-strike-yellow/30 px-2 py-0.5 text-xs font-semibold text-strike-yellow"
+                    : "rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/60"
+                }
+              >
+                {isCommissionPaid ? "Pago" : "Pagamento pendente"}
+              </span>
+            )}
           </div>
           <div className="mt-1 text-4xl font-black text-strike-yellow">
             {formatBRL(monthCommission)}
@@ -197,6 +234,42 @@ export default async function InfluencerDashboardPage({
                   </td>
                 </tr>
               )}
+            </tbody>
+          </table>
+        </div>
+
+        <h2 className="mb-4 mt-10 text-lg font-bold">Histórico de pagamentos</h2>
+        <div className="overflow-x-auto rounded-lg border border-strike-border bg-strike-white">
+          <table className="w-full min-w-[420px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-strike-border text-left text-xs uppercase tracking-wide text-strike-muted">
+                <th className="px-4 py-3">Mês</th>
+                <th className="px-4 py-3">Comissão</th>
+                <th className="px-4 py-3">Pagamento</th>
+              </tr>
+            </thead>
+            <tbody>
+              {commissionHistory.map(({ key, label, commissionForMonth, paid }) => (
+                <tr key={key} className="border-b border-strike-border last:border-0">
+                  <td className="px-4 py-3 font-medium">{label}</td>
+                  <td className="px-4 py-3">{formatBRL(commissionForMonth)}</td>
+                  <td className="px-4 py-3">
+                    {commissionForMonth > 0 ? (
+                      <span
+                        className={
+                          paid
+                            ? "rounded-full bg-strike-yellow/30 px-2 py-0.5 text-xs font-semibold text-strike-black"
+                            : "rounded-full bg-strike-border px-2 py-0.5 text-xs font-semibold text-strike-muted"
+                        }
+                      >
+                        {paid ? "Pago" : "Pendente"}
+                      </span>
+                    ) : (
+                      <span className="text-strike-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

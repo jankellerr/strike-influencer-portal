@@ -56,7 +56,8 @@ export default async function AdminDashboardPage({
     return { influencer, monthRevenue, monthOrderCount: monthOrders.length, monthCommission, isPaid };
   });
   const totalMonthCommission = rows.reduce((sum, r) => sum + r.monthCommission, 0);
-  const unpaidCount = rows.filter((r) => !r.isPaid).length;
+  // Influencers with nothing owed this month aren't "pending" — there's nothing to pay.
+  const unpaidCount = rows.filter((r) => r.monthCommission > 0 && !r.isPaid).length;
   const selectedMonthLabel =
     monthOptions.find((o) => o.key === selectedMonth)?.label ?? selectedMonth;
 
@@ -141,26 +142,32 @@ export default async function AdminDashboardPage({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={
-                        isPaid
-                          ? "rounded-full bg-strike-yellow/30 px-2 py-0.5 text-xs font-semibold text-strike-black"
-                          : "rounded-full bg-strike-border px-2 py-0.5 text-xs font-semibold text-strike-muted"
-                      }
-                    >
-                      {isPaid ? "Pago" : "Pendente"}
-                    </span>
+                    {monthCommission > 0 ? (
+                      <span
+                        className={
+                          isPaid
+                            ? "rounded-full bg-strike-yellow/30 px-2 py-0.5 text-xs font-semibold text-strike-black"
+                            : "rounded-full bg-strike-border px-2 py-0.5 text-xs font-semibold text-strike-muted"
+                        }
+                      >
+                        {isPaid ? "Pago" : "Pendente"}
+                      </span>
+                    ) : (
+                      <span className="text-strike-muted">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <form
-                      method="POST"
-                      action={`/api/admin/influencers/${influencer.id}/commission-payment`}
-                    >
-                      <input type="hidden" name="month" value={selectedMonth} />
-                      <Button type="submit" variant="ghost" className="whitespace-nowrap px-2 py-1 text-xs">
-                        {isPaid ? "Desfazer" : "Marcar pago"}
-                      </Button>
-                    </form>
+                    {monthCommission > 0 && (
+                      <form
+                        method="POST"
+                        action={`/api/admin/influencers/${influencer.id}/commission-payment`}
+                      >
+                        <input type="hidden" name="month" value={selectedMonth} />
+                        <Button type="submit" variant="ghost" className="whitespace-nowrap px-2 py-1 text-xs">
+                          {isPaid ? "Desfazer" : "Marcar pago"}
+                        </Button>
+                      </form>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Link
