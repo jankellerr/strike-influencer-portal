@@ -37,7 +37,11 @@ export async function shopifyAdminGraphQL<T>(
 
   const json = (await res.json()) as GraphQLResponse<T>;
 
-  if (json.errors?.length) {
+  // Only throw when there's no data at all -- a partial error (e.g. a field
+  // denied because a scope like read_inventory hasn't been granted yet)
+  // still returns usable data for everything else and shouldn't kill the
+  // whole sync over one optional field.
+  if (json.errors?.length && !json.data) {
     throw new Error(`Shopify GraphQL error: ${json.errors.map((e) => e.message).join(", ")}`);
   }
 
@@ -50,6 +54,7 @@ interface ProductNode {
   title: string;
   featuredImage: { url: string } | null;
   onlineStoreUrl: string | null;
+  variants: { nodes: Array<{ inventoryItem: { unitCost: { amount: string } | null } }> };
 }
 
 interface ProductsQueryResult {
@@ -69,10 +74,25 @@ const PRODUCTS_QUERY = `
         title
         featuredImage { url }
         onlineStoreUrl
+        variants(first: 1) {
+          nodes {
+            inventoryItem { unitCost { amount } }
+          }
+        }
       }
     }
   }
 `;
+
+/**
+ * Per-item cost from the product's first variant, or null if unset in
+ * Shopify or if the read_inventory scope hasn't been granted yet (see
+ * README) -- either way this is just a prefill default, never required.
+ */
+export function getProductCostPerItem(product: ProductNode): number | null {
+  const amount = product.variants?.nodes?.[0]?.inventoryItem?.unitCost?.amount;
+  return amount ? Number(amount) : null;
+}
 
 export async function listAllProducts(): Promise<ProductNode[]> {
   const results: ProductNode[] = [];

@@ -36,6 +36,7 @@ model Influencer {
   utmLinks           UtmLink[]
   loginTokens        LoginToken[]
   commissionPayments CommissionPayment[]
+  shipments          Shipment[]
 }
 
 enum InfluencerStatus {
@@ -95,9 +96,15 @@ model Product {
   title          String
   imageUrl       String?
   onlineStoreUrl String
+  /// Per-item cost synced from Shopify's inventory item unit cost (requires
+  /// the read_inventory scope -- see README). Null until that's set up, or if
+  /// the merchant never entered a cost for the item in Shopify. Used only as
+  /// a prefill default on the shipment form -- always manually overridable.
+  costPerItem    Decimal?
   syncedAt       DateTime @default(now())
 
-  utmLinks UtmLink[]
+  utmLinks      UtmLink[]
+  shipmentItems ShipmentItem[]
 }
 
 model UtmLink {
@@ -156,4 +163,51 @@ model CommissionPayment {
 
   @@unique([influencerId, month])
   @@index([month])
+}
+
+/// Simple internal grouping for shipments (e.g. "Summer Drop", "Holiday Kit")
+/// -- defined ad hoc in the admin panel, not synced from Shopify.
+model Collection {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+
+  shipments Shipment[]
+}
+
+/// A batch of product sent to an influencer. Total cost (shippingFee + the
+/// sum of its items' quantity * unitCost) is both "shipment value" for the
+/// shipments dashboard and the investment side of that influencer's ROI.
+model Shipment {
+  id           String      @id @default(cuid())
+  influencer   Influencer  @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  influencerId String
+  collection   Collection? @relation(fields: [collectionId], references: [id])
+  collectionId String?
+  shippedAt    DateTime
+  shippingFee  Decimal     @default(0)
+  note         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  items ShipmentItem[]
+
+  @@index([influencerId])
+  @@index([shippedAt])
+  @@index([collectionId])
+}
+
+model ShipmentItem {
+  id         String   @id @default(cuid())
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  shipmentId String
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  quantity   Int
+  /// Snapshot of the per-item cost at ship time (from Product.costPerItem or
+  /// manually entered) -- doesn't move if Shopify's cost changes later.
+  unitCost   Decimal
+  createdAt  DateTime @default(now())
+
+  @@index([shipmentId])
 }

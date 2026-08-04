@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { verifyAdminSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { TopBar } from "@/components/TopBar";
+import { AdminNav } from "@/components/AdminNav";
 import { Button, Card, ErrorText, Input, Label, Textarea } from "@/components/ui";
 
 export default async function AdminVideosPage({
@@ -19,9 +19,7 @@ export default async function AdminVideosPage({
   return (
     <>
       <TopBar label="Admin">
-        <Link href="/admin" className="text-white/70 hover:text-white">
-          ← Voltar
-        </Link>
+        <AdminNav active="/admin/videos" />
       </TopBar>
 
       <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { listAllProducts } from "@/lib/shopify/client";
+import { listAllProducts, getProductCostPerItem } from "@/lib/shopify/client";
 
 export async function syncProducts(): Promise<{ upserted: number; skipped: number }> {
   const products = await listAllProducts();
@@ -14,6 +14,8 @@ export async function syncProducts(): Promise<{ upserted: number; skipped: numbe
       continue;
     }
 
+    const costPerItem = getProductCostPerItem(product);
+
     await prisma.product.upsert({
       where: { shopifyGid: product.id },
       create: {
@@ -22,12 +24,14 @@ export async function syncProducts(): Promise<{ upserted: number; skipped: numbe
         title: product.title,
         imageUrl: product.featuredImage?.url ?? null,
         onlineStoreUrl: product.onlineStoreUrl,
+        costPerItem,
       },
       update: {
         handle: product.handle,
         title: product.title,
         imageUrl: product.featuredImage?.url ?? null,
         onlineStoreUrl: product.onlineStoreUrl,
+        costPerItem,
         syncedAt: new Date(),
       },
     });

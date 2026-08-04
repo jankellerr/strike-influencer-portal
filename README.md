@@ -31,6 +31,7 @@ Shopify retired the old "Develop apps in admin" static-token flow — custom app
 4. **Settings** tab: copy **Client ID** and **Client secret** into `.env` as `SHOPIFY_CLIENT_ID` and `SHOPIFY_CLIENT_SECRET`. Also set `SHOPIFY_STORE_DOMAIN` to `your-store.myshopify.com`.
 5. In the Dev Dashboard app's **Configuration** (or **URLs**) settings, add `http://localhost:3000/api/shopify/oauth/callback` to the allowed redirect URLs (add the production URL too once deployed).
 6. **Get the real access token** — this is the part that differs from most tutorials: on a production store, the `client_credentials` grant silently returns a token with no scopes (it only works on Shopify dev stores). Instead, run the app locally (`npm run dev`) and visit `http://localhost:3000/api/shopify/oauth/start` in your browser. You'll be asked to approve access on the Shopify side; after approving, the callback page shows a permanent offline access token — copy it into `.env` as `SHOPIFY_ADMIN_ACCESS_TOKEN`. This is a one-time step.
+7. **Optional, for shipment cost prefill**: the shipments dashboard (see below) prefills each line item's cost from Shopify's per-item cost, which lives behind the `read_inventory` scope — not granted by the steps above. To enable it: add `read_inventory` alongside `read_products` in the Versions tab, **Release** the new version, then redo step 6 (the OAuth flow issues a fresh token scoped to whatever the app currently requests). Until you do this, `Product.costPerItem` stays `null` and admins just type the cost in by hand on the shipment form — nothing breaks either way.
 
 ### 4. Resend (influencer login emails)
 
@@ -76,6 +77,23 @@ Auth is a single shared password (no per-staff accounts) signed into an HttpOnly
 
 > Note: this Next.js version renamed the `middleware.ts` file convention to `proxy.ts` (the old name is deprecated) — that's why route protection lives in `src/proxy.ts`, not `src/middleware.ts`.
 
+### Analytics dashboard (`/admin/analytics`)
+
+The financial health view for the whole program. Filter by week, month, quarter, semester, or year (`?period=` + `?periodKey=`, see `src/lib/dateRanges.ts`'s generalized period helpers). Shows:
+
+- Program-wide KPI tiles (revenue, orders, AOV, commission, shipment investment, ROI, active influencers), each with a vs.-previous-period delta
+- A revenue trend chart across the last 8 periods of the selected granularity
+- Leaderboards: highest sales volume, most orders, highest commission earned, best ROI, and "Melhor geral" — a weighted composite score (see `SCORE_WEIGHT_*` constants in `src/lib/analytics.ts`)
+- A full sortable table with every metric per influencer
+
+ROI is revenue generated divided by that influencer's shipment cost for the period (see Shipments below) — an influencer with no shipments logged yet shows "—", not a 0% ROI.
+
+### Shipments dashboard (`/admin/shipments`)
+
+Tracks what product was sent to each influencer, when, and at what cost — this is also the investment side of the ROI calculation above. Filterable by period, influencer, and collection (a simple internal tag you define inline when logging a shipment, e.g. "Drop de Verão" — not synced from Shopify).
+
+Each shipment has a ship date, a shipping fee, and one or more line items (product + quantity + per-item cost). The per-item cost prefills from `Product.costPerItem` (synced from Shopify — see the `read_inventory` scope note above) but is always manually editable, since that sync is optional and Shopify's cost data isn't always set.
+
 ## Influencer dashboard
 
 `/login` → influencer enters their email → gets a one-time magic link (15 min expiry, single use) via Resend → `/dashboard`.
@@ -92,10 +110,13 @@ The dashboard shows, filterable by date range (`?from=YYYY-MM-DD&to=YYYY-MM-DD`,
 src/
   app/
     admin/                   # Admin panel pages (login, dashboard, new influencer)
+    admin/analytics/           # Financial health dashboard (leaderboards, ROI, trends)
+    admin/shipments/            # Shipments dashboard + new/edit forms
     login/                    # Influencer magic-link login page
     dashboard/                 # Influencer sales dashboard
     dashboard/links/            # UTM link generator + click counts
     api/admin/                # Admin login/logout/influencer mutation routes
+    api/admin/shipments/       # Shipment create/update/delete routes
     api/login/                 # Magic-link request + verify routes
     api/logout/                # Influencer logout
     api/dashboard/links/       # Create a UTM link
@@ -104,15 +125,18 @@ src/
     l/[slug]/                   # Short-link redirect + click logging
   lib/
     yampi/                    # Yampi API client, webhook verification, order upsert, backfill
-    shopify/                   # Shopify Admin GraphQL client, product sync
+    shopify/                   # Shopify Admin GraphQL client, product sync (incl. cost-per-item)
     cron/                      # Cron auth guard
     session.ts                 # Admin + influencer session cookies sign/verify (jose)
     dal.ts                      # verifyAdminSession() / verifyInfluencerSession() DAL helpers
     email.ts                    # Resend magic-link email sending
     orderStatus.ts              # Shared "counts as revenue" status classification
+    analytics.ts                 # Per-influencer metrics, ROI, and "best overall" score
+    dateRanges.ts                # Week/month/quarter/semiannual/year period math (Brazil tz)
+    format.ts                    # Shared BRL/number/date formatters
     prisma.ts                   # Prisma client singleton (Neon driver adapter)
   proxy.ts                      # Route protection for /admin and /dashboard (renamed from middleware.ts)
-prisma/schema.prisma            # Influencer, LoginToken, Coupon, Order, Product, UtmLink, ClickEvent
+prisma/schema.prisma            # Influencer, Coupon, Order, Product, Shipment, ShipmentItem, Collection, ...
 ```
 
 ## What's built vs. what's next

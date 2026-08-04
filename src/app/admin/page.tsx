@@ -10,13 +10,11 @@ import {
   isValidMonthKey,
 } from "@/lib/dateRanges";
 import { TopBar } from "@/components/TopBar";
+import { AdminNav } from "@/components/AdminNav";
 import { Button, Select } from "@/components/ui";
+import { formatBRL } from "@/lib/format";
 
 const MONTH_OPTIONS_COUNT = 12;
-
-function formatBRL(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -76,14 +74,7 @@ export default async function AdminDashboardPage({
         <Link href="/admin/influencers/new" className="text-strike-yellow hover:brightness-110">
           + Novo influenciador
         </Link>
-        <Link href="/admin/videos" className="text-white/70 hover:text-white">
-          Vídeos
-        </Link>
-        <form method="POST" action="/api/admin/logout">
-          <button type="submit" className="text-white/70 hover:text-white">
-            Sair
-          </button>
-        </form>
+        <AdminNav active="/admin" />
       </TopBar>
 
       <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
